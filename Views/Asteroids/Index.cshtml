@@ -1,0 +1,71 @@
+﻿@model List<NASA_API.Models.ViewModels.AsteroidViewModel>
+
+@{
+    ViewData["Title"] = "Asteroids";
+}
+
+<h2>Near-Earth Asteroids</h2>
+
+<form method="get" asp-action="List">
+    <label>Start Date:</label>
+    <input type="date" name="startDate" value="@ViewBag.StartDate" required />
+    <label>End Date:</label>
+    <input type="date" name="endDate" value="@ViewBag.EndDate"  required />
+    <button type="submit">Search</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div style="color:red">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}
+
+@if (Model != null && Model.Count > 0)
+{
+    <p>From: @ViewBag.StartDate.ToString("dd.MM.yyyy") - To: @ViewBag.EndDate.ToString("dd.MM.yyyy")</p>
+    <table style="border-collapse: collapse; width: 100%;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Id</th>
+                <th>Size Range(km)</th> 
+                <th>Hazardous</th>
+                <th>Close Approach</th>
+                <th>Speed (km/h)</th>
+                <th>Miss Distance (km)</th>
+                <th>Orbiting body</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var asteroid in @Model)
+            {
+                <tr>
+                    <td>@asteroid.Name</td>
+                    <td>@asteroid.Id</td>
+                    <td>@asteroid.EstimatedDiameterMinKm - @asteroid.EstimatedDiameterMaxKm</td>
+                    <td>@(asteroid.IsPotentiallyHazardous ? "Yes" : "No")</td>
+                    <td>@asteroid.CloseApproachDate</td>
+                    <td>@asteroid.RelativeVelocityKph</td>
+                    <td>@asteroid.MissDistanceKm</td>
+                    <td>@asteroid.OrbitingBody</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <form method="post" asp-controller="Asteroid" asp-action="ExportToExcel">
+        <input type="hidden" name="startDate" value="@ViewBag.StartDate" />
+        <input type="hidden" name="endDate" value="@ViewBag.EndDate" />
+        <button type="submit">Export to Excel</button>
+    </form>
+    
+}
+else
+{
+    <p>No asteroid data found for this date range.</p>
+}

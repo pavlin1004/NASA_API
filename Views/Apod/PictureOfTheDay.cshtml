@@ -1,0 +1,39 @@
+﻿@using NASA_API.Models.Enums
+
+@model NASA_API.Models.ViewModels.ApodViewModel
+
+@{
+    ViewData["Title"] = "Astronomy Picture of the Day";
+}
+
+<h1>Astronomy Picture of the Day</h1>
+
+<form asp-action="PictureOfTheDay" method="get">
+    <label for="date">Choose a date:</label>
+    <input type="date" name="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+    <button type="submit">Load</button>
+</form>
+
+@if (Model != null)
+{
+    <h2>@Model.Title (@Model.Date)</h2>
+
+    @if (Model.MediaType == MediaType.Image)
+    {
+        <img src="@Model.Url" alt="@Model.Title" style="max-width:100%; height:auto;" />
+    }
+    else if (Model.MediaType == MediaType.Video)
+    {
+        <iframe width="560" height="315" src="@Model.Url" frameborder="0" allowfullscreen></iframe>
+    }
+
+    <p>@Model.Explanation</p>
+    if(Model.Copyright != "Unknown")
+    {
+        <p>Copyright: @Model.Copyright</p>
+    }
+}
+else
+{
+    <p>No data found for the selected date.</p>
+}
