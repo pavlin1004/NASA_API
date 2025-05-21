@@ -31,7 +31,7 @@ namespace NASA_API
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Apod}/{action=PictureOfTheDay}");
+                pattern: "{controller=Asteroids}/{action=Index}");
 
             app.Run();
         }

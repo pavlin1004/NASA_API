@@ -19,7 +19,24 @@ namespace NASA_API.Services
 
         public async Task<ApodViewModel> GetApodByDateAsync(DateTime? date = null)
         {
-            string dateParam = date?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
+            DateTime targetDate;
+
+            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            var easternNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, easternZone).Date;
+
+            if (date.HasValue)
+            {
+                // If input date is in the future relative to Eastern Time's current date, go back one day
+                targetDate = date.Value.Date;
+                if (targetDate > easternNow.Date) targetDate = easternNow.Date;
+            }
+            else
+            {
+                //Assuming NASA updates their APOD at 12:30 AM
+                targetDate = easternNow.Hour < 1 ? easternNow.Date.AddDays(-1) : easternNow.Date;
+            }
+
+            string dateParam = targetDate.ToString("yyyy-MM-dd");
 
             var url = $"https://api.nasa.gov/planetary/apod?api_key={_apiKey}&date={dateParam}&thumbs=true";
 
@@ -32,15 +49,19 @@ namespace NASA_API.Services
             var model = new ApodViewModel
             {
                 Url = apodJson.GetProperty("url").GetString(),
-                Title = apodJson.GetProperty("title").GetString(),
                 Date = apodJson.GetProperty("date").GetString(),
+                Title = apodJson.TryGetProperty("title", out var titleProp)
+                ? titleProp.GetString()
+                : "No Title",
                 MediaType = apodJson.GetProperty("media_type").GetString() switch
                 {
                     "image" => MediaType.Image,
                     "video" => MediaType.Video,
                     _ => MediaType.Other
                 },
-                Explanation = apodJson.GetProperty("explanation").GetString(),
+                Explanation = apodJson.TryGetProperty("explanation", out var explanationProp)
+                ? explanationProp.GetString()
+                : "No explanation provided.",
                 Copyright = apodJson.TryGetProperty("copyright", out var copyrightProp)
                 ? copyrightProp.GetString()
                 : "Unknown"

@@ -12,7 +12,7 @@ namespace NASA_API.Controllers
         {
             _nasaService = nasaService;
         }
-        public async Task<IActionResult> PictureOfTheDay(DateTime? date = null)
+        public async Task<IActionResult> Index(DateTime? date = null)
         {
             var pictureOfTheDay = await _nasaService.GetApodByDateAsync(date);
 
