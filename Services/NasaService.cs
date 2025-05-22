@@ -19,25 +19,7 @@ namespace NASA_API.Services
 
         public async Task<ApodViewModel> GetApodByDateAsync(DateTime? date = null)
         {
-            DateTime targetDate;
-
-            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-            var easternNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, easternZone).Date;
-
-            if (date.HasValue)
-            {
-                // If input date is in the future relative to Eastern Time's current date, go back one day
-                targetDate = date.Value.Date;
-                if (targetDate > easternNow.Date) targetDate = easternNow.Date;
-            }
-            else
-            {
-                //Assuming NASA updates their APOD at 12:30 AM
-                targetDate = easternNow.Hour < 1 ? easternNow.Date.AddDays(-1) : easternNow.Date;
-            }
-
-            string dateParam = targetDate.ToString("yyyy-MM-dd");
-
+            var dateParam = ValidateDateParam(date);
             var url = $"https://api.nasa.gov/planetary/apod?api_key={_apiKey}&date={dateParam}&thumbs=true";
 
             var response = await _client.GetAsync(url);
@@ -46,19 +28,21 @@ namespace NASA_API.Services
             var json = await response.Content.ReadAsStringAsync();
             var apodJson = JsonDocument.Parse(json).RootElement;
 
+            var mediaType = apodJson.GetProperty("media_type").GetString();
+
             var model = new ApodViewModel
             {
-                Url = apodJson.GetProperty("url").GetString(),
                 Date = apodJson.GetProperty("date").GetString(),
                 Title = apodJson.TryGetProperty("title", out var titleProp)
                 ? titleProp.GetString()
                 : "No Title",
-                MediaType = apodJson.GetProperty("media_type").GetString() switch
+                MediaType =  mediaType switch
                 {
                     "image" => MediaType.Image,
                     "video" => MediaType.Video,
                     _ => MediaType.Other
                 },
+                Url = ExtractMediaUrl(apodJson,mediaType),
                 Explanation = apodJson.TryGetProperty("explanation", out var explanationProp)
                 ? explanationProp.GetString()
                 : "No explanation provided.",
@@ -123,7 +107,53 @@ namespace NASA_API.Services
             return result;
         }
 
+        private string ExtractMediaUrl(JsonElement apodJson, string? mediaType)
+        {
+            if (mediaType == "video" &&
+                apodJson.TryGetProperty("url", out var videoUrlProp) &&
+                videoUrlProp.GetString() is string videoUrl)
+            {
+                if (videoUrl.Contains("youtube.com/watch"))
+                {
+                    return videoUrl.Replace("watch?v=", "embed/");
+                }
 
+                return videoUrl;
+            }
 
+            if (apodJson.TryGetProperty("url", out var urlProp))
+            {
+                return urlProp.GetString()!;
+            }
+
+            if (apodJson.TryGetProperty("thumbnail_url", out var thumbProp))
+            {
+                return thumbProp.GetString()!;
+            }
+
+            return "No media available";
+        }
+
+        private string ValidateDateParam(DateTime? date = null)
+        {
+            DateTime targetDate;
+
+            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            var easternNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, easternZone).Date;
+
+            if (date.HasValue)
+            {
+                // If input date is in the future relative to Eastern Time's current date, go back one day
+                targetDate = date.Value.Date;
+                if (targetDate > easternNow.Date) targetDate = easternNow.Date;
+            }
+            else
+            {
+                //Assuming NASA updates their APOD at 12:30 AM
+                targetDate = easternNow.Hour < 1 ? easternNow.Date.AddDays(-1) : easternNow.Date;
+            }
+
+            return targetDate.ToString("yyyy-MM-dd");
+        }
     }
 }

@@ -6,7 +6,7 @@
 
 <h2>Near-Earth Asteroids</h2>
 
-<form method="get" asp-action="List">
+<form method="get" asp-action="Index">
     <label>Start Date:</label>
     <input type="date" name="startDate" value="@ViewBag.StartDate" required />
     <label>End Date:</label>
@@ -58,7 +58,7 @@
         </tbody>
     </table>
 
-    <form method="post" asp-controller="Asteroid" asp-action="ExportToExcel">
+    <form method="post" asp-controller="Asteroids" asp-action="ExportToExcel">
         <input type="hidden" name="startDate" value="@ViewBag.StartDate" />
         <input type="hidden" name="endDate" value="@ViewBag.EndDate" />
         <button type="submit">Export to Excel</button>
